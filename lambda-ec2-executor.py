@@ -1,16 +1,13 @@
 import boto3
 import os
-import tarfile
-import shutil
-import sys
 import paramiko
 import logging
 import inspect
 
 LOG_STATUS = True
-SSH_KEY_S3_BUCKET = os.environ['SshKeys3Bucket']
-SSH_KEY_S3_KEY = os.environ['SshKeys3Key']
-EC2_USER = "ec2-user"
+SSH_KEY_S3_BUCKET = os.environ['SshKeyS3Bucket']
+SSH_KEY_S3_KEY = os.environ['SshKeyS3Key']
+EC2_USER = os.environ['Ec2User']
 
 
 def log(msg):

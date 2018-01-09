@@ -25,7 +25,7 @@
       "Description": "Enter the ec2 ssh username"
     },
     "Ec2SecurityGroup": {
-      "Description": "Ec2 Security group",
+      "Description": "Ec2 Security group Id",
       "Type": "String"
     },
     "LambdaPrivateSubnetId": {
@@ -79,8 +79,8 @@
                 "s3:List*"
               ],
               "Resource": [
-                  { "Fn::Join" :  ["", ["arn:aws:s3:::", { "Ref" : "CodeS3BucketName"}, "/", { "Ref": "CodeS3Key" }, "/*"]] },
-                  { "Fn::Join" :  ["", ["arn:aws:s3:::", { "Ref" : "SshKeyS3BucketName"}, "/", { "Ref": "SshKeyS3Key" }, "/*"]] }
+                  { "Fn::Join" :  ["", ["arn:aws:s3:::", { "Ref" : "CodeS3BucketName"}, "/", { "Ref": "CodeS3Key" }]] },
+                  { "Fn::Join" :  ["", ["arn:aws:s3:::", { "Ref" : "SshKeyS3BucketName"}, "/", { "Ref": "SshKeyS3Key" }]] }
                 ]
             }]
           }

@@ -99,3 +99,5 @@ ENV/
 
 # mypy
 .mypy_cache/
+/lambda-ec2-executor.zip
+/python2.7-paramiko-*.zip

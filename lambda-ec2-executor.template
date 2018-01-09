@@ -1,0 +1,178 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "Lambda ec2 executor ",
+
+  "Parameters": {
+    "SshKeyS3BucketName": {
+      "Type": "String",
+      "Description": "Enter the S3 bucket, where ssh key is stored."
+    },
+    "SshKeyS3Key": {
+      "Type": "String",
+      "Description": "Enter the the S3 key, where ssh key is stored."
+    },
+    "CodeS3BucketName": {
+      "Type": "String",
+      "Description": "Enter the S3 bucket, where code is stored."
+    },
+    "CodeS3Key": {
+      "Type": "String",
+      "Description": "Enter the the S3 key, where lambda code is stored."
+    },
+    "Ec2User": {
+      "Type": "String",
+      "Description": "Enter the ec2 ssh username"
+    },
+    "Ec2SecurityGroup": {
+      "Description": "Ec2 Security group Id",
+      "Type": "String"
+    },
+    "LambdaPrivateSubnetId": {
+      "Description": "Lambda Subnet id",
+      "Type": "AWS::EC2::Subnet::Id"
+    },
+    "VpcId": {
+      "Description": "VpcId of your existing Virtual Private Cloud (VPC)",
+      "Type": "AWS::EC2::VPC::Id"
+    }
+  },
+
+  "Resources" : {
+    "LambdaRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Effect": "Allow",
+            "Principal": {
+              "Service": ["lambda.amazonaws.com"]
+            },
+            "Action": ["sts:AssumeRole"]
+          }]
+        },
+        "Path": "/",
+        "Policies": [{
+          "PolicyName": "ec2",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [{
+              "Effect": "Allow",
+              "Action": [
+                "ec2:DescribeNetworkInterfaces",
+                "ec2:CreateNetworkInterface",
+                "ec2:DeleteNetworkInterface",
+                "ec2:DescribeInstances"
+              ],
+              "Resource": "*"
+            }]
+          }
+        },{
+          "PolicyName": "S3Access",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [{
+              "Effect": "Allow",
+              "Action": [
+                "s3:Get*",
+                "s3:List*"
+              ],
+              "Resource": [
+                  { "Fn::Join" :  ["", ["arn:aws:s3:::", { "Ref" : "CodeS3BucketName"}, "/", { "Ref": "CodeS3Key" }]] },
+                  { "Fn::Join" :  ["", ["arn:aws:s3:::", { "Ref" : "SshKeyS3BucketName"}, "/", { "Ref": "SshKeyS3Key" }]] }
+                ]
+            }]
+          }
+        },
+        {
+          "PolicyName": "CloudFormationAccess",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [{
+              "Effect": "Allow",
+              "Action": "cloudformation:DescribeStacks",
+              "Resource": "*"
+            }]
+          }
+        }, {
+          "PolicyName": "CloudWatchAccess",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [{
+              "Effect": "Allow",
+              "Action": "cloudwatch:PutMetricData",
+              "Resource": "*"
+            }]
+          }
+        }, {
+          "PolicyName": "LogsAccess",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [{
+              "Effect": "Allow",
+              "Action": "logs:*",
+              "Resource": "*"
+            }]
+          }
+        }]
+      }
+    },
+    "LambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "DependsOn": "LambdaRole",
+      "Properties": {
+        "Description": "Lambda Ec2 executor",
+        "Handler": "lambda-ec2-executor.lambda_handler",
+        "Role": {
+          "Fn::GetAtt": ["LambdaRole", "Arn"]
+        },
+        "Code": {
+          "S3Bucket": {"Ref": "SshKeyS3BucketName"},
+          "S3Key": { "Ref": "CodeS3Key" }
+        },
+        "Environment": {
+          "Variables": {
+            "SshKeyS3Bucket": {"Ref": "SshKeyS3BucketName"},
+            "SshKeyS3Key": { "Ref": "SshKeyS3Key" },
+            "Ec2User": { "Ref": "Ec2User" }
+          }
+        },
+        "Runtime": "python2.7",
+        "MemorySize": "512",
+        "Timeout": "60",
+        "VpcConfig": {
+          "SecurityGroupIds" : [{ "Ref": "Ec2SecurityGroup" }],
+          "SubnetIds" : [{ "Ref": "LambdaPrivateSubnetId" }]
+        }
+      }
+    },
+    "LambdaArchiverInvokePermission": {
+      "Type": "AWS::Lambda::Permission",
+      "DependsOn": "LambdaFunction",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": ["LambdaFunction", "Arn"]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceAccount": {
+          "Ref": "AWS::AccountId"
+        }
+      }
+    }
+
+  },
+
+  "Outputs": {
+    "LambdaFunction": {
+      "Description": "ARN lambda",
+      "Value": {
+        "Fn::GetAtt": [
+          "LambdaFunction",
+          "Arn"
+        ]
+      }
+    }
+  }
+}

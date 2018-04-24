@@ -172,7 +172,8 @@
           "LambdaFunction",
           "Arn"
         ]
-      }
+      },
+      "Export" : { "Name" : { "Fn::Join" : [ "", [ {"Ref": "AWS::StackName"}, "-arn" ]]}}
     }
   }
 }
